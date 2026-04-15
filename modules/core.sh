@@ -4,26 +4,30 @@ install_core_tools() {
     export DEBIAN_FRONTEND=noninteractive
 
     # Repositórios Extras
-    sudo mkdir -p /etc/apt/keyrings
+    sudo mkdir -p /etc/apt/keyrings || return 1
     if [ ! -f /etc/apt/sources.list.d/gierens.list ]; then
-        wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
-        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list > /dev/null
+        wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg || return 1
+        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list > /dev/null || return 1
     fi
 
     if [ ! -f /etc/apt/sources.list.d/github-cli.list ]; then
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg || return 1
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null || return 1
     fi
-    sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch > /dev/null 2>&1
+
+    # Garantir add-apt-repository antes de usar o comando
+    sudo apt-get update -y || return 1
+    sudo apt-get install -y software-properties-common || return 1
+    sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch > /dev/null || return 1
 
     # Atualização e Pacotes Base (Sem o Neovim velho)
-    sudo apt-get update -y
-    sudo apt-get upgrade -y
+    sudo apt-get update -y || return 1
+    sudo apt-get upgrade -y || return 1
     sudo apt-get install -y \
       build-essential curl wget git unzip zip ca-certificates gnupg lsb-release \
       software-properties-common apt-transport-https zsh tmux fzf ripgrep \
       fd-find bat eza htop btop tree jq direnv xclip shellcheck make cmake \
-      ninja-build gdb clang lldb gh stow fastfetch
+      ninja-build gdb clang lldb gh stow fastfetch || return 1
 
     # Ferramentas CLI
     if ! command -v zoxide &> /dev/null; then
