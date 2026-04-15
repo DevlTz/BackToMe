@@ -9,3 +9,7 @@ install_java() {
         sdk install springboot
     fi
 }
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    install_java
+fi
