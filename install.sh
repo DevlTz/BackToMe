@@ -73,8 +73,11 @@ stow -t "$HOME" zsh
 # stow -t "$HOME" starship
 
 # Muda o shell padrão para Zsh
-if [ "$SHELL" != "$(which zsh)" ]; then
-    chsh -s $(which zsh) || true
+if [[ $CHOICES == *"1. Core"* ]]; then
+    ZSH_PATH="$(command -v zsh || true)"
+    if [ -n "$ZSH_PATH" ] && [ "$SHELL" != "$ZSH_PATH" ]; then
+        chsh -s "$ZSH_PATH" || true
+    fi
 fi
 
 echo ""
