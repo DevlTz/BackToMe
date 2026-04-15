@@ -10,7 +10,7 @@ print_header() {
     gum style \
         --foreground 212 --border-foreground 212 --border double \
         --align center --width 50 --margin "1 2" --padding "1 2" \
-        "BACK TO ME" "Setup Modular v5.0"
+        "BACK TO ME" "O setup definitivo para ambientes de desenvolvimento WSL"
 }
 
 run_with_spinner() {
