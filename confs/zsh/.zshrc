@@ -19,7 +19,7 @@ export SDKMAN_DIR="$HOME/.sdkman"
 export PATH="$HOME/.local/bin:$PATH"
 
 # Aliases de Produtividade
-alias p="cd /home/dovale/projects"
+alias p="cd \"$HOME/projects\""
 alias ll="eza -lah --icons"
 alias ls="eza --icons"
 alias v="nvim"
