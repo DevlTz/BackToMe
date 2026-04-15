@@ -17,8 +17,8 @@ run_with_spinner() {
     local title="$1"
     shift # Remove o título e pega o resto (o comando)
     
-    # Agora usamos o 'bash -c' para rodar o comando perfeitamente no fundo
-    if gum spin --spinner dot --title "$title" -- bash -c "$* >> $LOG_FILE 2>&1"; then
+    # Executa o comando preservando os argumentos originais e redireciona fora do shell
+    if gum spin --spinner dot --title "$title" -- "$@" >> "$LOG_FILE" 2>&1; then
         success "$title concluído!"
     else
         error "Falha em: $title. Verifique o $LOG_FILE."
