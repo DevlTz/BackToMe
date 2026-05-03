@@ -45,11 +45,11 @@ info "Iniciando processo de instalação..."
 
 # Conta quantos módulos foram selecionados
 PROGRESS_COUNT=0
-[[ $CHOICES == *"1. Core"* ]]    && (( PROGRESS_COUNT++ ))
-[[ $CHOICES == *"2. Stack Node"* ]] && (( PROGRESS_COUNT++ ))
-[[ $CHOICES == *"3. Stack Java"* ]] && (( PROGRESS_COUNT++ ))
-[[ $CHOICES == *"4. Stack Python"* ]] && (( PROGRESS_COUNT++ ))
-[[ $CHOICES == *"5. Docker"* ]]   && (( PROGRESS_COUNT++ ))
+[[ $CHOICES == *"1. Core"* ]]     && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
+[[ $CHOICES == *"2. Stack Node"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
+[[ $CHOICES == *"3. Stack Java"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
+[[ $CHOICES == *"4. Stack Python"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
+[[ $CHOICES == *"5. Docker"* ]]   && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
 init_progress "$PROGRESS_COUNT"
 # 5. Executando as escolhas com a barra de carregamento
 
