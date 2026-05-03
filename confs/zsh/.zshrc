@@ -1,17 +1,24 @@
+# Instant prompt (p10k) — deve ficar no topo
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # Inicialização base
 export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(git sudo docker zsh-autosuggestions zsh-syntax-highlighting extract)
 source $ZSH/oh-my-zsh.sh
 
 # Ferramentas visuais
-eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
 fastfetch
+
+# Powerlevel10k
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # Exportações
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
 
