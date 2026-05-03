@@ -15,7 +15,6 @@
 
 ## Preview
 
-> Adicione aqui um print do seu terminal rodando o `fastfetch` e o Neovim aberto.
 
 ---
 
