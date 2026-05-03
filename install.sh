@@ -22,7 +22,7 @@ fi
 
 # Carrega só a UI
 # ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
-source utils/ui.sh
+source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
 print_header
@@ -45,30 +45,30 @@ info "Iniciando processo de instalação..."
 # 5. Executando as escolhas com a barra de carregamento
 
 if [[ $CHOICES == *"1. Core"* ]]; then
-    run_with_spinner "Instalando ferramentas Core e Neovim..." "bash modules/core.sh"
+    run_with_spinner "Instalando ferramentas Core e Neovim..." "source '$DOTFILES_DIR/modules/core.sh' && install_core_tools"
 fi
 
 if [[ $CHOICES == *"2. Stack Node.js"* ]]; then
-    run_with_spinner "Instalando ecossistema Node.js..." "bash modules/node.sh"
+    run_with_spinner "Instalando ecossistema Node.js..." "source '$DOTFILES_DIR/modules/node.sh' && install_node"
 fi
 
 if [[ $CHOICES == *"3. Stack Java"* ]]; then
-    run_with_spinner "Instalando ecossistema Java..." "bash modules/java.sh"
+    run_with_spinner "Instalando ecossistema Java..." "source '$DOTFILES_DIR/modules/java.sh' && install_java"
 fi
 
 if [[ $CHOICES == *"4. Stack Python"* ]]; then
-    run_with_spinner "Instalando ecossistema Python..." "bash modules/python.sh"
+    run_with_spinner "Instalando ecossistema Python..." "source '$DOTFILES_DIR/modules/python.sh' && install_python"
 fi
 
 if [[ $CHOICES == *"5. Docker"* ]]; then
-    run_with_spinner "Configurando Docker CLI..." "bash modules/docker.sh"
+    run_with_spinner "Configurando Docker CLI..." "source '$DOTFILES_DIR/modules/core.sh' && install_docker"
 fi
 
 # 6. Aplicando as Configurações (GNU Stow)
 info "Aplicando Dotfiles via GNU Stow..."
 rm -f "$HOME/.zshrc" # Remove o padrão para não dar conflito
 cd "$DOTFILES_DIR/confs"
-stow -t "$HOME" zsh
+stow --restow -t "$HOME" zsh
 # stow -t "$HOME" nvim
 # stow -t "$HOME" starship
 
@@ -82,4 +82,4 @@ fi
 
 echo ""
 gum style --foreground 46 --bold "🎉 Setup concluído com sucesso!"
-gum confirm "Deseja reiniciar o terminal agora?" && zsh
+gum confirm "Deseja reiniciar o terminal agora?" && zsh -l
