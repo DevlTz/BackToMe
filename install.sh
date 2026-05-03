@@ -21,6 +21,7 @@ if ! command -v gum &> /dev/null; then
 fi
 
 # Carrega só a UI
+# ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
 source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
@@ -66,25 +67,50 @@ fi
 # 6. Aplicando as Configurações (GNU Stow)
 info "Aplicando Dotfiles via GNU Stow..."
 cd "$DOTFILES_DIR/confs"
+
+BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y-%m-%d_%H-%M-%S)"
+RESTORE_SCRIPT="$BACKUP_DIR/restore.sh"
+BACKUP_MADE=false
+
 for dotfile in zsh; do
     conflicts=$(stow --simulate -t "$HOME" "$dotfile" 2>&1 | grep "existing target" | awk '{print $NF}')
     if [ -n "$conflicts" ]; then
-        echo ""
-        warn "Os seguintes arquivos já existem e seriam sobrescritos por '$dotfile':"
-        echo "$conflicts" | while read -r f; do echo "   ~/.${f}"; done
-        echo ""
-        if gum confirm "Deseja substituir suas configs atuais pelas do BackToMe?"; then
-            echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
-            stow -t "$HOME" "$dotfile"
-            success "Dotfiles de '$dotfile' aplicados!"
-        else
-            warn "Mantendo suas configs atuais para '$dotfile'. Pulando..."
-        fi
+        # Faz backup automático antes de qualquer coisa
+        mkdir -p "$BACKUP_DIR"
+        echo "$conflicts" | while read -r f; do
+            src="$HOME/$f"
+            [ -f "$src" ] && cp "$src" "$BACKUP_DIR/$f"
+        done
+        BACKUP_MADE=true
+
+        # Remove conflitos e aplica
+        echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
+        stow -t "$HOME" "$dotfile"
+        success "Dotfiles de '$dotfile' aplicados! (backup salvo)"
     else
         stow -t "$HOME" "$dotfile"
         success "Dotfiles de '$dotfile' aplicados!"
     fi
 done
+
+# Gera o restore.sh se houve backup
+if [ "$BACKUP_MADE" = true ]; then
+    {
+        echo "#!/usr/bin/env bash"
+        echo "# Gerado automaticamente pelo BackToMe em $(date)"
+        echo "echo '🔄 Restaurando suas configs anteriores...'"
+        ls "$BACKUP_DIR" | grep -v "restore.sh" | while read -r f; do
+            echo "cp '$BACKUP_DIR/$f' '$HOME/$f' && echo '  ✅ $f restaurado'"
+        done
+        echo "echo '🎉 Restauração concluída!'"
+    } > "$RESTORE_SCRIPT"
+    chmod +x "$RESTORE_SCRIPT"
+    echo ""
+    warn "Suas configs anteriores foram salvas em:"
+    echo "   $BACKUP_DIR"
+    warn "Para restaurar, rode:"
+    echo "   bash $RESTORE_SCRIPT"
+fi
 # stow -t "$HOME" nvim
 # stow -t "$HOME" starship
 
