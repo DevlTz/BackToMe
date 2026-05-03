@@ -15,20 +15,19 @@ install_core_tools() {
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null || return 1
     fi
  
-    # Atualização e Pacotes Base (Sem o Neovim velho, fastfetch via GitHub)
+    # Garantir add-apt-repository antes de usar o comando
+    sudo apt-get update -y || return 1
+    sudo apt-get install -y software-properties-common || return 1
+    sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch > /dev/null || return 1
+ 
+    # Atualização e Pacotes Base (Sem o Neovim velho)
     sudo apt-get update -y || return 1
     sudo apt-get upgrade -y || return 1
     sudo apt-get install -y \
       build-essential curl wget git unzip zip ca-certificates gnupg lsb-release \
       software-properties-common apt-transport-https zsh tmux fzf ripgrep \
       fd-find bat eza htop btop tree jq direnv xclip shellcheck make cmake \
-      ninja-build gdb clang lldb gh stow || return 1
-
-    # Fastfetch via GitHub Releases (PPA tem problema de conectividade)
-    if ! command -v fastfetch &> /dev/null; then
-        curl -fLo /tmp/fastfetch.deb "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb"
-        sudo dpkg -i /tmp/fastfetch.deb && rm /tmp/fastfetch.deb
-    fi
+      ninja-build gdb clang lldb gh stow fastfetch || return 1
  
     # Ferramentas CLI
     if ! command -v zoxide &> /dev/null; then
@@ -64,8 +63,10 @@ install_core_tools() {
     ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
     [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ] && git clone https://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions 2>/dev/null || true
     [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ] && git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting 2>/dev/null || true
-    if ! command -v starship &> /dev/null; then
-        curl -fsSL https://starship.rs/install.sh | sh -s -- -y
+    # Powerlevel10k
+    ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+    if [ ! -d "$ZSH_CUSTOM/themes/powerlevel10k" ]; then
+        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$ZSH_CUSTOM/themes/powerlevel10k"
     fi
 }
 
