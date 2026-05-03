@@ -22,7 +22,7 @@ fi
 
 # Carrega só a UI
 # ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
-source utils/ui.sh
+source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
 print_header
@@ -45,30 +45,72 @@ info "Iniciando processo de instalação..."
 # 5. Executando as escolhas com a barra de carregamento
 
 if [[ $CHOICES == *"1. Core"* ]]; then
-    run_with_spinner "Instalando ferramentas Core e Neovim..." "bash modules/core.sh"
+    run_with_spinner "Instalando ferramentas Core e Neovim..." "source '$DOTFILES_DIR/modules/core.sh' && install_core_tools"
 fi
 
 if [[ $CHOICES == *"2. Stack Node.js"* ]]; then
-    run_with_spinner "Instalando ecossistema Node.js..." "bash modules/node.sh"
+    run_with_spinner "Instalando ecossistema Node.js..." "source '$DOTFILES_DIR/modules/node.sh' && install_node"
 fi
 
 if [[ $CHOICES == *"3. Stack Java"* ]]; then
-    run_with_spinner "Instalando ecossistema Java..." "bash modules/java.sh"
+    run_with_spinner "Instalando ecossistema Java..." "source '$DOTFILES_DIR/modules/java.sh' && install_java"
 fi
 
 if [[ $CHOICES == *"4. Stack Python"* ]]; then
-    run_with_spinner "Instalando ecossistema Python..." "bash modules/python.sh"
+    run_with_spinner "Instalando ecossistema Python..." "source '$DOTFILES_DIR/modules/python.sh' && install_python"
 fi
 
 if [[ $CHOICES == *"5. Docker"* ]]; then
-    run_with_spinner "Configurando Docker CLI..." "bash modules/docker.sh"
+    run_with_spinner "Configurando Docker CLI..." "source '$DOTFILES_DIR/modules/core.sh' && install_docker"
 fi
 
 # 6. Aplicando as Configurações (GNU Stow)
 info "Aplicando Dotfiles via GNU Stow..."
-rm -f "$HOME/.zshrc" # Remove o padrão para não dar conflito
 cd "$DOTFILES_DIR/confs"
-stow -t "$HOME" zsh
+
+BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y-%m-%d_%H-%M-%S)"
+RESTORE_SCRIPT="$BACKUP_DIR/restore.sh"
+BACKUP_MADE=false
+
+for dotfile in zsh; do
+    conflicts=$(stow --simulate -t "$HOME" "$dotfile" 2>&1 | grep "existing target" | awk '{print $NF}')
+    if [ -n "$conflicts" ]; then
+        # Faz backup automático antes de qualquer coisa
+        mkdir -p "$BACKUP_DIR"
+        echo "$conflicts" | while read -r f; do
+            src="$HOME/$f"
+            [ -f "$src" ] && cp "$src" "$BACKUP_DIR/$f"
+        done
+        BACKUP_MADE=true
+
+        # Remove conflitos e aplica
+        echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
+        stow -t "$HOME" "$dotfile"
+        success "Dotfiles de '$dotfile' aplicados! (backup salvo)"
+    else
+        stow -t "$HOME" "$dotfile"
+        success "Dotfiles de '$dotfile' aplicados!"
+    fi
+done
+
+# Gera o restore.sh se houve backup
+if [ "$BACKUP_MADE" = true ]; then
+    {
+        echo "#!/usr/bin/env bash"
+        echo "# Gerado automaticamente pelo BackToMe em $(date)"
+        echo "echo '🔄 Restaurando suas configs anteriores...'"
+        ls "$BACKUP_DIR" | grep -v "restore.sh" | while read -r f; do
+            echo "cp '$BACKUP_DIR/$f' '$HOME/$f' && echo '  ✅ $f restaurado'"
+        done
+        echo "echo '🎉 Restauração concluída!'"
+    } > "$RESTORE_SCRIPT"
+    chmod +x "$RESTORE_SCRIPT"
+    echo ""
+    warn "Suas configs anteriores foram salvas em:"
+    echo "   $BACKUP_DIR"
+    warn "Para restaurar, rode:"
+    echo "   bash $RESTORE_SCRIPT"
+fi
 # stow -t "$HOME" nvim
 # stow -t "$HOME" starship
 
@@ -82,4 +124,4 @@ fi
 
 echo ""
 gum style --foreground 46 --bold "🎉 Setup concluído com sucesso!"
-gum confirm "Deseja reiniciar o terminal agora?" && zsh
+gum confirm "Deseja reiniciar o terminal agora?" && zsh -l
