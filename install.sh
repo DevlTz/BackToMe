@@ -21,7 +21,6 @@ if ! command -v gum &> /dev/null; then
 fi
 
 # Carrega só a UI
-# ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
 source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
@@ -66,9 +65,26 @@ fi
 
 # 6. Aplicando as Configurações (GNU Stow)
 info "Aplicando Dotfiles via GNU Stow..."
-rm -f "$HOME/.zshrc" # Remove o padrão para não dar conflito
 cd "$DOTFILES_DIR/confs"
-stow --restow -t "$HOME" zsh
+for dotfile in zsh; do
+    conflicts=$(stow --simulate -t "$HOME" "$dotfile" 2>&1 | grep "existing target" | awk '{print $NF}')
+    if [ -n "$conflicts" ]; then
+        echo ""
+        warn "Os seguintes arquivos já existem e seriam sobrescritos por '$dotfile':"
+        echo "$conflicts" | while read -r f; do echo "   ~/.${f}"; done
+        echo ""
+        if gum confirm "Deseja substituir suas configs atuais pelas do BackToMe?"; then
+            echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
+            stow -t "$HOME" "$dotfile"
+            success "Dotfiles de '$dotfile' aplicados!"
+        else
+            warn "Mantendo suas configs atuais para '$dotfile'. Pulando..."
+        fi
+    else
+        stow -t "$HOME" "$dotfile"
+        success "Dotfiles de '$dotfile' aplicados!"
+    fi
+done
 # stow -t "$HOME" nvim
 # stow -t "$HOME" starship
 
