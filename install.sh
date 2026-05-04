@@ -21,7 +21,6 @@ if ! command -v gum &> /dev/null; then
 fi
 
 # Carrega só a UI
-# ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
 source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
@@ -45,11 +44,11 @@ info "Iniciando processo de instalação..."
 
 # Conta quantos módulos foram selecionados
 PROGRESS_COUNT=0
-[[ $CHOICES == *"1. Core"* ]]     && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
-[[ $CHOICES == *"2. Stack Node"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
-[[ $CHOICES == *"3. Stack Java"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
-[[ $CHOICES == *"4. Stack Python"* ]] && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
-[[ $CHOICES == *"5. Docker"* ]]   && PROGRESS_COUNT=$((PROGRESS_COUNT + 1)) || true
+[[ $CHOICES == *"1. Core"* ]]    && (( PROGRESS_COUNT++ ))
+[[ $CHOICES == *"2. Stack Node"* ]] && (( PROGRESS_COUNT++ ))
+[[ $CHOICES == *"3. Stack Java"* ]] && (( PROGRESS_COUNT++ ))
+[[ $CHOICES == *"4. Stack Python"* ]] && (( PROGRESS_COUNT++ ))
+[[ $CHOICES == *"5. Docker"* ]]   && (( PROGRESS_COUNT++ ))
 init_progress "$PROGRESS_COUNT"
 # 5. Executando as escolhas com a barra de carregamento
 
@@ -84,18 +83,27 @@ BACKUP_MADE=false
 for dotfile in zsh; do
     conflicts=$(stow --simulate -t "$HOME" "$dotfile" 2>&1 | grep "existing target" | awk '{print $NF}')
     if [ -n "$conflicts" ]; then
-        # Faz backup automático antes de qualquer coisa
-        mkdir -p "$BACKUP_DIR"
-        echo "$conflicts" | while read -r f; do
-            src="$HOME/$f"
-            [ -f "$src" ] && cp "$src" "$BACKUP_DIR/$f"
-        done
-        BACKUP_MADE=true
+        echo ""
+        warn "Os seguintes arquivos já existem no seu sistema:"
+        echo "$conflicts" | while read -r f; do echo "   ~/$f"; done
+        echo ""
 
-        # Remove conflitos e aplica
-        echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
-        stow -t "$HOME" "$dotfile"
-        success "Dotfiles de '$dotfile' aplicados! (backup salvo)"
+        if gum confirm "Deseja substituir suas configs atuais pelas do BackToMe? (backup será feito automaticamente)"; then
+            # Faz backup antes de substituir
+            mkdir -p "$BACKUP_DIR"
+            echo "$conflicts" | while read -r f; do
+                src="$HOME/$f"
+                [ -f "$src" ] && cp "$src" "$BACKUP_DIR/$f"
+            done
+            BACKUP_MADE=true
+
+            # Remove conflitos e aplica
+            echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
+            stow -t "$HOME" "$dotfile"
+            success "Dotfiles de '$dotfile' aplicados! (backup salvo em $BACKUP_DIR)"
+        else
+            warn "Mantendo seus arquivos atuais para '$dotfile'. Pulando..."
+        fi
     else
         stow -t "$HOME" "$dotfile"
         success "Dotfiles de '$dotfile' aplicados!"
@@ -133,4 +141,4 @@ fi
 
 echo ""
 gum style --foreground 46 --bold "🎉 Setup concluído com sucesso!"
-gum confirm "Deseja reiniciar o terminal agora?" && zsh -l
+gum confirm "Deseja reiniciar o terminal agora?" && zsh
