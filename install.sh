@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set +e 
 
 export LOG_FILE="${HOME}/wsl-dev-setup.log"
 export DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,6 +22,7 @@ if ! command -v gum &> /dev/null; then
 fi
 
 # Carrega só a UI
+# ATENÇÃO: Se você tiver funções de instalação específicas para cada módulo, é melhor colocar essas funções dentro dos arquivos de módulo correspondentes (como node.sh, java.sh, etc.) e chamá-las aqui. Assim, o install.sh fica mais limpo e organizado.
 source "$DOTFILES_DIR/utils/ui.sh"
 
 # 3. Inicia a Interface
@@ -81,31 +83,40 @@ RESTORE_SCRIPT="$BACKUP_DIR/restore.sh"
 BACKUP_MADE=false
 
 for dotfile in zsh; do
-    conflicts=$(stow --simulate -t "$HOME" "$dotfile" 2>&1 | grep "existing target" | awk '{print $NF}')
-    if [ -n "$conflicts" ]; then
+    # Lista os arquivos que seriam linkados
+    dotfiles_list=$(find "$DOTFILES_DIR/confs/$dotfile" -maxdepth 1 -name ".*" -type f | xargs -I{} basename {})
+
+    # Checa quais já existem em $HOME e NÃO são symlinks pro projeto
+    existing=()
+    while IFS= read -r f; do
+        target="$HOME/$f"
+        if [ -f "$target" ] && [ ! -L "$target" ]; then
+            existing+=("$f")
+        elif [ -L "$target" ] && [ "$(readlink "$target")" != "$DOTFILES_DIR/confs/$dotfile/$f" ]; then
+            existing+=("$f")
+        fi
+    done <<< "$dotfiles_list"
+
+    if [ ${#existing[@]} -gt 0 ]; then
         echo ""
         warn "Os seguintes arquivos já existem no seu sistema:"
-        echo "$conflicts" | while read -r f; do echo "   ~/$f"; done
+        for f in "${existing[@]}"; do echo "   ~/$f"; done
         echo ""
 
-        if gum confirm "Deseja substituir suas configs atuais pelas do BackToMe? (backup será feito automaticamente)"; then
-            # Faz backup antes de substituir
+        if gum confirm "Deseja substituir suas configs atuais pelas do BackToMe? (backup automático será feito)"; then
             mkdir -p "$BACKUP_DIR"
-            echo "$conflicts" | while read -r f; do
-                src="$HOME/$f"
-                [ -f "$src" ] && cp "$src" "$BACKUP_DIR/$f"
+            for f in "${existing[@]}"; do
+                [ -f "$HOME/$f" ] && cp "$HOME/$f" "$BACKUP_DIR/$f"
+                rm -f "$HOME/$f"
             done
             BACKUP_MADE=true
-
-            # Remove conflitos e aplica
-            echo "$conflicts" | while read -r f; do rm -f "$HOME/$f"; done
             stow -t "$HOME" "$dotfile"
             success "Dotfiles de '$dotfile' aplicados! (backup salvo em $BACKUP_DIR)"
         else
             warn "Mantendo seus arquivos atuais para '$dotfile'. Pulando..."
         fi
     else
-        stow -t "$HOME" "$dotfile"
+        stow --restow -t "$HOME" "$dotfile"
         success "Dotfiles de '$dotfile' aplicados!"
     fi
 done
